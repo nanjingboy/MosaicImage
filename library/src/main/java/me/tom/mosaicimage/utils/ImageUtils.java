@@ -4,10 +4,6 @@ import android.graphics.Bitmap;
 
 public class ImageUtils {
 
-    public static Bitmap mosaic(Bitmap source) {
-        return mosaic(source, 16);
-    }
-
     public static Bitmap mosaic(Bitmap source, int size) {
         int sourceWidth = source.getWidth();
         int sourceHeight = source.getHeight();
