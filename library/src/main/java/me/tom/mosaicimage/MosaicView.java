@@ -14,13 +14,16 @@ import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 
 import android.util.AttributeSet;
+
 import android.view.MotionEvent;
 import android.view.View;
 
 import com.tbruyelle.rxpermissions.RxPermissions;
 
 import me.tom.mosaicimage.utils.ImageUtils;
+import me.tom.mosaicimage.utils.ToastUtils;
 import rx.Observable;
+import rx.Subscriber;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 import rx.functions.Func1;
@@ -38,11 +41,9 @@ public class MosaicView extends View {
     protected Canvas mMosaicCanvas;
     protected Bitmap mMosaicCanvasBitmap;
 
-    protected Paint mPaint;
     protected Path mPath;
+    protected Paint mPaint;
     protected Rect mImageRect;
-    protected Rect mMosaicCanvasImageRect;
-
 
     public MosaicView(Context context) {
         this(context, null);
@@ -70,9 +71,6 @@ public class MosaicView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        if (mMosaicImage == null || mSourceImage == null) {
-            return;
-        }
         if (mImageRect == null) {
             mImageRect = new Rect(
                     getPaddingLeft(),
@@ -81,23 +79,19 @@ public class MosaicView extends View {
                     getHeight() - getPaddingBottom()
             );
         }
+        if (mMosaicImage == null || mSourceImage == null) {
+            return;
+        }
         if (mMosaicCanvasBitmap == null) {
-            mMosaicCanvasBitmap = Bitmap.createBitmap(
-                    getWidth() - getPaddingLeft() - getPaddingRight(),
-                    getHeight() - getPaddingTop() - getPaddingBottom(),
-                    Bitmap.Config.ARGB_8888
-            );
+            mMosaicCanvasBitmap = Bitmap.createBitmap(getWidth(), getHeight(), Bitmap.Config.ARGB_8888);
         }
         if (mMosaicCanvas == null) {
             mMosaicCanvas = new Canvas(mMosaicCanvasBitmap);
         }
-        if (mMosaicCanvasImageRect == null) {
-            mMosaicCanvasImageRect = new Rect(0, 0, mMosaicCanvas.getWidth(), mMosaicCanvas.getHeight());
-        }
         canvas.drawBitmap(mMosaicImage, null, mImageRect, null);
-        mMosaicCanvas.drawBitmap(mSourceImage, null, mMosaicCanvasImageRect, null);
+        mMosaicCanvas.drawBitmap(mSourceImage, null, mImageRect, null);
         mMosaicCanvas.drawPath(mPath, mPaint);
-        canvas.drawBitmap(mMosaicCanvasBitmap, getPaddingLeft(), getPaddingTop(), null);
+        canvas.drawBitmap(mMosaicCanvasBitmap, 0, 0, null);
     }
 
 
@@ -118,12 +112,13 @@ public class MosaicView extends View {
         return true;
     }
 
-    public void setMosaicAreaSize(int mosaicAreaSize) {
+    public MosaicView setMosaicAreaSize(int mosaicAreaSize) {
         mMosaicAreaSize = mosaicAreaSize;
         mPaint.setStrokeWidth(mMosaicAreaSize);
+        return this;
     }
 
-    public void setImage(final String url) {
+    public void load(final String url) {
         RxPermissions rxPermissions = new RxPermissions((Activity) mContext);
         rxPermissions.request(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 .subscribe(new Action1<Boolean>() {
@@ -156,9 +151,18 @@ public class MosaicView extends View {
                 })
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<Bitmap>() {
+                .subscribe(new Subscriber<Bitmap>() {
                     @Override
-                    public void call(Bitmap bitmap) {
+                    public void onCompleted() {
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        ToastUtils.show(mContext, R.string.mosaic_image_load_failed);
+                    }
+
+                    @Override
+                    public void onNext(Bitmap bitmap) {
                         mSourceImage = bitmap;
                         setMosaicImage();
                     }
@@ -169,9 +173,18 @@ public class MosaicView extends View {
         ImageUtils.compress(path)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<Bitmap>() {
+                .subscribe(new Subscriber<Bitmap>() {
                     @Override
-                    public void call(Bitmap bitmap) {
+                    public void onCompleted() {
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        ToastUtils.show(mContext, R.string.mosaic_image_load_failed);
+                    }
+
+                    @Override
+                    public void onNext(Bitmap bitmap) {
                         mSourceImage = bitmap;
                         setMosaicImage();
                     }
@@ -188,9 +201,18 @@ public class MosaicView extends View {
                 })
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<Bitmap>() {
+                .subscribe(new Subscriber<Bitmap>() {
                     @Override
-                    public void call(Bitmap bitmap) {
+                    public void onCompleted() {
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        ToastUtils.show(mContext, R.string.mosaic_image_load_failed);
+                    }
+
+                    @Override
+                    public void onNext(Bitmap bitmap) {
                         mMosaicImage = bitmap;
                         invalidate();
                     }

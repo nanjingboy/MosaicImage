@@ -26,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         mMosaicView = (MosaicView) findViewById(R.id.mosaicView);
-        mMosaicView.setMosaicAreaSize(16);
-        mMosaicView.setImage("https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1493658093207&di=cc2d0d17ecb9273177299f27d5dedffc&imgtype=0&src=http%3A%2F%2Fi-2.yxdown.com%2F2015%2F7%2F11%2FKDYwMHgp%2Fb1165dc9-ca88-4f05-912d-eeefa01da9e8.jpg");
+        mMosaicView.setMosaicAreaSize(16)
+            .load("https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1493658093207&di=cc2d0d17ecb9273177299f27d5dedffc&imgtype=0&src=http%3A%2F%2Fi-2.yxdown.com%2F2015%2F7%2F11%2FKDYwMHgp%2Fb1165dc9-ca88-4f05-912d-eeefa01da9e8.jpg");
     }
 }
