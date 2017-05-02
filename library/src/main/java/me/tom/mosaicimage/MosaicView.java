@@ -1,5 +1,7 @@
 package me.tom.mosaicimage;
 
+import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -15,9 +17,7 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.request.animation.GlideAnimation;
-import com.bumptech.glide.request.target.SimpleTarget;
+import com.tbruyelle.rxpermissions.RxPermissions;
 
 import me.tom.mosaicimage.utils.ImageUtils;
 import rx.Observable;
@@ -106,6 +106,7 @@ public class MosaicView extends View {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 mPath.moveTo(event.getX(), event.getY());
+                invalidate();
                 break;
             case MotionEvent.ACTION_MOVE:
                 mPath.lineTo(event.getX(), event.getY());
@@ -117,17 +118,25 @@ public class MosaicView extends View {
         return true;
     }
 
-    public void setImage(String url, int mosaicAreaSize) {
+    public void setMosaicAreaSize(int mosaicAreaSize) {
         mMosaicAreaSize = mosaicAreaSize;
         mPaint.setStrokeWidth(mMosaicAreaSize);
-        Glide.with(mContext)
-                .load(url)
-                .asBitmap()
-                .into(new SimpleTarget<Bitmap>() {
+    }
+
+    public void setImage(final String url) {
+        RxPermissions rxPermissions = new RxPermissions((Activity) mContext);
+        rxPermissions.request(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                .subscribe(new Action1<Boolean>() {
                     @Override
-                    public void onResourceReady(Bitmap resource, GlideAnimation<? super Bitmap> glideAnimation) {
-                        mSourceImage =  resource;
-                        setMosaicImage();
+                    public void call(Boolean granted) {
+                        if (granted) {
+                            if (url.toLowerCase().startsWith("http://") || url.toLowerCase().startsWith("https://")) {
+                                setSourceImageFromNework(url);
+                            } else {
+                                setSourceImageFromLocal(url);
+
+                            }
+                        }
                     }
                 });
     }
@@ -135,6 +144,38 @@ public class MosaicView extends View {
     public void reset() {
         mPath.reset();
         invalidate();
+    }
+
+    protected void setSourceImageFromNework(String url) {
+        ImageUtils.download(mContext, url)
+                .flatMap(new Func1<String, Observable<Bitmap>>() {
+                    @Override
+                    public Observable<Bitmap> call(String path) {
+                        return ImageUtils.compress(path);
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<Bitmap>() {
+                    @Override
+                    public void call(Bitmap bitmap) {
+                        mSourceImage = bitmap;
+                        setMosaicImage();
+                    }
+                });
+    }
+
+    protected void setSourceImageFromLocal(String path) {
+        ImageUtils.compress(path)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<Bitmap>() {
+                    @Override
+                    public void call(Bitmap bitmap) {
+                        mSourceImage = bitmap;
+                        setMosaicImage();
+                    }
+                });
     }
 
     protected void setMosaicImage() {
