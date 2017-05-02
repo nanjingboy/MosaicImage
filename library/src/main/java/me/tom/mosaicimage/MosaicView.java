@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 
 import android.graphics.Paint;
@@ -37,6 +38,7 @@ public class MosaicView extends View {
 
     protected Bitmap mSourceImage;
     protected Bitmap mMosaicImage;
+    protected Bitmap mPlaceholderImage;
 
     protected Canvas mMosaicCanvas;
     protected Bitmap mMosaicCanvasBitmap;
@@ -80,6 +82,9 @@ public class MosaicView extends View {
             );
         }
         if (mMosaicImage == null || mSourceImage == null) {
+            if (mPlaceholderImage != null) {
+                canvas.drawBitmap(mPlaceholderImage, null, mImageRect, null);
+            }
             return;
         }
         if (mMosaicCanvasBitmap == null) {
@@ -118,6 +123,11 @@ public class MosaicView extends View {
         return this;
     }
 
+    public MosaicView placeholder(int resId) {
+        mPlaceholderImage = BitmapFactory.decodeResource(mContext.getResources(), resId);
+        return this;
+    }
+
     public void load(final String url) {
         RxPermissions rxPermissions = new RxPermissions((Activity) mContext);
         rxPermissions.request(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -125,6 +135,7 @@ public class MosaicView extends View {
                     @Override
                     public void call(Boolean granted) {
                         if (granted) {
+                            invalidate();
                             if (url.toLowerCase().startsWith("http://") || url.toLowerCase().startsWith("https://")) {
                                 setSourceImageFromNetwork(url);
                             } else {
