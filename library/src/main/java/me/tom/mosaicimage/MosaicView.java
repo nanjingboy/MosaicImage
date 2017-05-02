@@ -126,7 +126,7 @@ public class MosaicView extends View {
                     public void call(Boolean granted) {
                         if (granted) {
                             if (url.toLowerCase().startsWith("http://") || url.toLowerCase().startsWith("https://")) {
-                                setSourceImageFromNework(url);
+                                setSourceImageFromNetwork(url);
                             } else {
                                 setSourceImageFromLocal(url);
 
@@ -141,7 +141,7 @@ public class MosaicView extends View {
         invalidate();
     }
 
-    protected void setSourceImageFromNework(String url) {
+    protected void setSourceImageFromNetwork(String url) {
         ImageUtils.download(mContext, url)
                 .flatMap(new Func1<String, Observable<Bitmap>>() {
                     @Override
