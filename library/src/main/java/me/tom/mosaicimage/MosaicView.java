@@ -32,9 +32,14 @@ import rx.schedulers.Schedulers;
 
 public class MosaicView extends View {
 
+    public static final int SCALE_FIT_X = 0;
+    public static final int SCALE_FIT_Y = 1;
+    public static final int SCALE_FIT_XY = 2;
+
     protected Context mContext;
 
     protected int mMosaicAreaSize;
+    protected int mScaleType;
 
     protected Bitmap mSourceImage;
     protected Bitmap mMosaicImage;
@@ -45,7 +50,6 @@ public class MosaicView extends View {
 
     protected Path mPath;
     protected Paint mPaint;
-    protected Rect mImageRect;
 
     public MosaicView(Context context) {
         this(context, null);
@@ -59,6 +63,7 @@ public class MosaicView extends View {
         super(context, attrs, defStyle);
         mContext = context;
         mMosaicAreaSize = 16;
+        mScaleType = SCALE_FIT_XY;
         mPaint = new Paint();
         mPaint.setAntiAlias(true);
         mPaint.setDither(true);
@@ -73,17 +78,9 @@ public class MosaicView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        if (mImageRect == null) {
-            mImageRect = new Rect(
-                    getPaddingLeft(),
-                    getPaddingTop(),
-                    getWidth() - getPaddingRight(),
-                    getHeight() - getPaddingBottom()
-            );
-        }
         if (mMosaicImage == null || mSourceImage == null) {
             if (mPlaceholderImage != null) {
-                canvas.drawBitmap(mPlaceholderImage, null, mImageRect, null);
+                canvas.drawBitmap(mPlaceholderImage, null, getImageRect(mPlaceholderImage), null);
             }
             return;
         }
@@ -93,8 +90,9 @@ public class MosaicView extends View {
         if (mMosaicCanvas == null) {
             mMosaicCanvas = new Canvas(mMosaicCanvasBitmap);
         }
-        canvas.drawBitmap(mMosaicImage, null, mImageRect, null);
-        mMosaicCanvas.drawBitmap(mSourceImage, null, mImageRect, null);
+        Rect imageRect = getImageRect(mSourceImage);
+        canvas.drawBitmap(mMosaicImage, null, imageRect, null);
+        mMosaicCanvas.drawBitmap(mSourceImage, null, imageRect, null);
         mMosaicCanvas.drawPath(mPath, mPaint);
         canvas.drawBitmap(mMosaicCanvasBitmap, 0, 0, null);
     }
@@ -120,6 +118,11 @@ public class MosaicView extends View {
     public MosaicView setMosaicAreaSize(int mosaicAreaSize) {
         mMosaicAreaSize = mosaicAreaSize;
         mPaint.setStrokeWidth(mMosaicAreaSize);
+        return this;
+    }
+
+    public MosaicView scaleType(int scaleType) {
+        mScaleType = scaleType;
         return this;
     }
 
@@ -150,6 +153,43 @@ public class MosaicView extends View {
     public void reset() {
         mPath.reset();
         invalidate();
+    }
+
+    protected Rect getImageRect(Bitmap bitmap) {
+        Rect rect;
+        int bitmapWidth;
+        int bitmapHeight;
+        int width = getWidth();
+        int height = getHeight();
+        int paddingLeft = getPaddingLeft();
+        int paddingRight = getPaddingRight();
+        int paddingTop = getPaddingTop();
+        int paddingBottom = getPaddingBottom();
+        float ratio = ((float) bitmap.getWidth()) / bitmap.getHeight();
+        switch (mScaleType) {
+            case SCALE_FIT_X:
+                bitmapWidth = width - paddingLeft - paddingRight;
+                bitmapHeight = (int) Math.ceil(bitmapWidth / ratio);
+                if (bitmapHeight >= (height - paddingTop - paddingBottom)) {
+                    rect = new Rect(paddingLeft, paddingTop, width - paddingRight, height - paddingBottom);
+                } else {
+                    rect = new Rect(paddingLeft, (height - bitmapHeight) / 2, width - paddingRight, (height + bitmapHeight) / 2);
+                }
+                break;
+            case SCALE_FIT_Y:
+                bitmapHeight = height - paddingTop - paddingBottom;
+                bitmapWidth = (int) Math.ceil(bitmapHeight * ratio);
+                if (bitmapWidth >= (width - paddingLeft - paddingRight)) {
+                    rect = new Rect(paddingLeft, paddingTop, width - paddingRight, height - paddingBottom);
+                } else {
+                    rect = new Rect((width - bitmapWidth) / 2, paddingTop, (width + bitmapWidth) / 2, height - paddingBottom);
+                }
+                break;
+            default:
+                rect = new Rect(paddingLeft, paddingTop, width - paddingRight, height - paddingBottom);
+                break;
+        }
+        return rect;
     }
 
     protected void setSourceImageFromNetwork(String url) {
