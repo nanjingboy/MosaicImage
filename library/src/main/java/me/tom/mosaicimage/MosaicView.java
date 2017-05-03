@@ -7,6 +7,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 
@@ -21,6 +22,7 @@ import android.view.View;
 
 import com.tbruyelle.rxpermissions.RxPermissions;
 
+import me.tom.mosaicimage.utils.FileUtils;
 import me.tom.mosaicimage.utils.ImageUtils;
 import me.tom.mosaicimage.utils.ToastUtils;
 import rx.Observable;
@@ -73,6 +75,7 @@ public class MosaicView extends View {
         mPaint.setStrokeJoin(Paint.Join.ROUND);
         mPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
         mPath = new Path();
+        setDrawingCacheEnabled(true);
     }
 
     @Override
@@ -96,7 +99,6 @@ public class MosaicView extends View {
         mMosaicCanvas.drawPath(mPath, mPaint);
         canvas.drawBitmap(mMosaicCanvasBitmap, 0, 0, null);
     }
-
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
@@ -153,6 +155,52 @@ public class MosaicView extends View {
     public void reset() {
         mPath.reset();
         invalidate();
+    }
+
+    public Observable<String> saveToFile() {
+        return saveToFile(FileUtils.getTempFilePath(mContext, System.currentTimeMillis() + ".jpg"));
+    }
+
+    public Observable<String> saveToFile(final String filePath) {
+        RxPermissions rxPermissions = new RxPermissions((Activity)mContext);
+        return rxPermissions.request(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                .map(new Func1<Boolean, String>() {
+                    @Override
+                    public String call(Boolean granted) {
+                        if (granted) {
+                            Bitmap drawingCache = getDrawingCache();
+                            if (drawingCache == null) {
+                                return null;
+                            }
+                            int width = drawingCache.getWidth();
+                            int height = drawingCache.getHeight();
+                            int paddingLeft = getPaddingLeft();
+                            int paddingRight = getPaddingRight();
+                            int paddingTop = getPaddingTop();
+                            int paddingBottom = getPaddingBottom();
+                            Bitmap sourceBitmap = Bitmap.createBitmap(
+                                    drawingCache, paddingLeft, paddingTop,
+                                    width - paddingLeft - paddingRight,
+                                    height - paddingTop - paddingBottom
+                            );
+                            Matrix matrix = new Matrix();
+                            matrix.postScale(
+                                    ((float) mSourceImage.getWidth()) / sourceBitmap.getWidth(),
+                                    ((float) mSourceImage.getHeight()) / sourceBitmap.getHeight()
+                            );
+                            Bitmap destBitmap = Bitmap.createBitmap(
+                                    sourceBitmap, 0, 0,
+                                    sourceBitmap.getWidth(), sourceBitmap.getHeight(),
+                                    matrix, true
+                            );
+                            boolean status = ImageUtils.saveToFile(destBitmap, filePath);
+                            sourceBitmap.recycle();
+                            destBitmap.recycle();
+                            return status ? filePath : null;
+                        }
+                        return null;
+                    }
+                });
     }
 
     protected Rect getImageRect(Bitmap bitmap) {

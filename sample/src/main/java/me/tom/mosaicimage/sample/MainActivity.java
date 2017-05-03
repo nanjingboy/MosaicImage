@@ -7,11 +7,16 @@ import android.view.View;
 import android.widget.Button;
 
 import me.tom.mosaicimage.MosaicView;
+import me.tom.mosaicimage.utils.ToastUtils;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.schedulers.Schedulers;
 
 public class MainActivity extends AppCompatActivity {
 
     private MosaicView mMosaicView;
     private Button mClearButton;
+    private Button mSaveButton;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -22,6 +27,24 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 mMosaicView.reset();
+            }
+        });
+
+        mSaveButton = (Button) findViewById(R.id.saveButton);
+        mSaveButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mMosaicView.saveToFile()
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(new Action1<String>() {
+                        @Override
+                        public void call(String filePath) {
+                            if (filePath != null) {
+                                ToastUtils.show(MainActivity.this, "File saved to:" + filePath);
+                            }
+                        }
+                    });
             }
         });
 

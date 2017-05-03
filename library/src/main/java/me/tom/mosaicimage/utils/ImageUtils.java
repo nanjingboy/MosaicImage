@@ -33,6 +33,18 @@ public class ImageUtils {
         return destBitmap;
     }
 
+    public static Boolean saveToFile(Bitmap bitmap, String filePath) {
+        try {
+            OutputStream outputStream = new FileOutputStream(new File(filePath));
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
+            outputStream.flush();
+            outputStream.close();
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
     public static Observable<String> download(final Context context, final String url) {
         return Observable.fromCallable(new Callable<String>() {
             @Override

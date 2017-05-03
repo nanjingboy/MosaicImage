@@ -10,6 +10,13 @@
         android:layout_height="wrap_content"
         android:text="Clear"/>
 
+    <Button
+        android:id="@+id/saveButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Save To File"/>
+
+
     <me.tom.mosaicimage.MosaicView
         android:id="@+id/mosaicView"
         android:padding="16dp"
