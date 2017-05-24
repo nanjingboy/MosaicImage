@@ -75,7 +75,6 @@ public class MosaicView extends View {
         mPaint.setStrokeJoin(Paint.Join.ROUND);
         mPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
         mPath = new Path();
-        setDrawingCacheEnabled(true);
     }
 
     @Override
@@ -168,39 +167,34 @@ public class MosaicView extends View {
                     @Override
                     public String call(Boolean granted) {
                         if (granted) {
-                            Bitmap drawingCache = getDrawingCache();
-                            if (drawingCache == null) {
-                                return null;
-                            }
-                            int width = drawingCache.getWidth();
-                            int height = drawingCache.getHeight();
-                            int paddingLeft = getPaddingLeft();
-                            int paddingRight = getPaddingRight();
-                            int paddingTop = getPaddingTop();
-                            int paddingBottom = getPaddingBottom();
-                            Bitmap sourceBitmap = Bitmap.createBitmap(
-                                    drawingCache, paddingLeft, paddingTop,
-                                    width - paddingLeft - paddingRight,
-                                    height - paddingTop - paddingBottom
-                            );
-                            Matrix matrix = new Matrix();
-                            matrix.postScale(
-                                    ((float) mSourceImage.getWidth()) / sourceBitmap.getWidth(),
-                                    ((float) mSourceImage.getHeight()) / sourceBitmap.getHeight()
-                            );
-                            Bitmap destBitmap = Bitmap.createBitmap(
-                                    sourceBitmap, 0, 0,
-                                    sourceBitmap.getWidth(), sourceBitmap.getHeight(),
-                                    matrix, true
-                            );
-                            boolean status = ImageUtils.saveToFile(destBitmap, filePath);
-                            sourceBitmap.recycle();
-                            destBitmap.recycle();
+                            Bitmap bitmap = getBitmap();
+                            boolean status = ImageUtils.saveToFile(bitmap, filePath);
+                            bitmap.recycle();
                             return status ? filePath : null;
                         }
                         return null;
                     }
                 });
+    }
+
+    public Bitmap getBitmap() {
+        setDrawingCacheEnabled(true);
+        Bitmap drawingCache = getDrawingCache();
+        Rect rect = getImageRect(mSourceImage);
+        Bitmap sourceBitmap = Bitmap.createBitmap(drawingCache, rect.left, rect.top, rect.width(), rect.height());
+        Matrix matrix = new Matrix();
+        matrix.postScale(
+                ((float) mSourceImage.getWidth()) / sourceBitmap.getWidth(),
+                ((float) mSourceImage.getHeight()) / sourceBitmap.getHeight()
+        );
+        Bitmap destBitmap = Bitmap.createBitmap(
+                sourceBitmap, 0, 0,
+                sourceBitmap.getWidth(), sourceBitmap.getHeight(),
+                matrix, true
+        );
+        setDrawingCacheEnabled(false);
+        sourceBitmap.recycle();
+        return destBitmap;
     }
 
     protected Rect getImageRect(Bitmap bitmap) {
