@@ -16,7 +16,7 @@ repositories {
 }
 
 dependencies {
-    compile 'com.github.nanjingboy:MosaicImage:1.0.0'
+    compile 'com.github.nanjingboy:MosaicImage:1.0.1'
 }
 ```
 
